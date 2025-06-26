@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pokemon Tái Sinh: Victini Phiên Bản 3</title>
+    <title>Pokemon Tái Sinh: Victini Phiên Bản 4</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
@@ -347,12 +347,83 @@
             from { transform: scale(1) rotate(360deg); opacity: 1; }
             to { transform: scale(0) rotate(0deg); opacity: 0; }
         }
+
+        /* Inventory Panel */
+        .inventory-panel {
+            background-color: #2d3748;
+            border: 1px solid #4a5568;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* 4 columns for items */
+            gap: 0.75rem;
+        }
+        .inventory-item {
+            background-color: #4a5568;
+            border: 1px solid #667eea;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            position: relative;
+        }
+        .inventory-item:hover {
+            background-color: #5a647d;
+            transform: translateY(-2px);
+        }
+        .item-quantity {
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            font-size: 0.75rem;
+            padding: 1px 4px;
+            border-radius: 0.25rem;
+        }
+
+        /* Item Detail Modal */
+        .item-detail-modal-content {
+            background-color: #2d3748;
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            width: 80%;
+            max-width: 400px;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+        }
+        .item-detail-modal-content button {
+            margin: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .item-detail-modal-content button.use-btn {
+            background-color: #48bb78; /* Green */
+            color: white;
+        }
+        .item-detail-modal-content button.use-btn:hover {
+            background-color: #68d391;
+        }
+        .item-detail-modal-content button.close-btn {
+            background-color: #e53e3e; /* Red */
+            color: white;
+        }
+        .item-detail-modal-content button.close-btn:hover {
+            background-color: #fc8181;
+        }
+
     </style>
 </head>
 <body>
     <div class="game-container">
         <div class="game-panel flex flex-col gap-4">
-            <h1 class="text-3xl font-bold text-center mb-4 text-orange-400">Pokemon Tái Sinh: Victini Phiên Bản 3</h1>
+            <h1 class="text-3xl font-bold text-center mb-4 text-orange-400">Pokemon Tái Sinh: Victini Phiên Bản 4</h1>
             <div class="player-stats-panel">
                 <h3 class="text-xl font-bold text-green-300 mb-2">Chỉ số Victini</h3>
                 <p id="playerLevelExp">Cấp: 1 | EXP: 0/100</p>
@@ -361,6 +432,12 @@
             <canvas id="gameCanvas" width="600" height="400"></canvas>
             <div class="message-log" id="messageLog">
                 Chào mừng bạn đến với thế giới của Victini!
+            </div>
+            <div class="inventory-panel">
+                <h3 class="text-xl font-bold text-yellow-300 mb-2">Túi đồ</h3>
+                <div id="inventoryGrid" class="inventory-grid">
+                    <!-- Items will be rendered here -->
+                </div>
             </div>
         </div>
         <div class="game-controls w-full md:w-auto p-4 bg-gray-700 rounded-lg shadow-lg">
@@ -418,6 +495,7 @@
                 <button id="vcreateBtn">V-Create</button>
                 <button id="searingShotBtn">Searing Shot</button>
                 <button id="focusBlastBtn">Focus Blast</button>
+                <button id="useItemCombatBtn">Dùng Vật phẩm</button>
                 <button id="runBtn">Chạy</button>
             </div>
         </div>
@@ -431,7 +509,7 @@
         </div>
     </div>
 
-    <!-- NPC Dialogue Modal (New) -->
+    <!-- NPC Dialogue Modal -->
     <div id="npcDialogueModal" class="npc-dialogue-modal hidden">
         <div class="npc-dialogue-box">
             <h3 class="text-2xl font-bold text-indigo-300 mb-2">Trò chuyện với <span id="npcNameDisplay"></span></h3>
@@ -444,6 +522,18 @@
             </div>
             <div class="loading-spinner" id="dialogueLoadingSpinner"></div>
             <button id="closeDialogueModalBtn" class="mt-4 bg-red-600 hover:bg-red-700 active:bg-red-800">Kết thúc trò chuyện</button>
+        </div>
+    </div>
+
+    <!-- Item Detail/Use Modal (New) -->
+    <div id="itemDetailModal" class="modal hidden">
+        <div class="item-detail-modal-content">
+            <h3 id="itemNameDetail" class="text-xl font-bold mb-2 text-cyan-300"></h3>
+            <p id="itemDescriptionDetail" class="text-base text-gray-300 mb-4"></p>
+            <div class="flex justify-center gap-4">
+                <button id="useItemBtn" class="use-btn">Sử dụng</button>
+                <button id="closeItemDetailModalBtn" class="close-btn">Đóng</button>
+            </div>
         </div>
     </div>
 
@@ -476,6 +566,17 @@
         const closeDialogueModalBtn = document.getElementById('closeDialogueModalBtn');
         const dialogueLoadingSpinner = document.getElementById('dialogueLoadingSpinner');
 
+        // Inventory Elements
+        const inventoryGrid = document.getElementById('inventoryGrid');
+        const useItemCombatBtn = document.getElementById('useItemCombatBtn');
+
+        // Item Detail Modal Elements
+        const itemDetailModal = document.getElementById('itemDetailModal');
+        const itemNameDetail = document.getElementById('itemNameDetail');
+        const itemDescriptionDetail = document.getElementById('itemDescriptionDetail');
+        const useItemBtn = document.getElementById('useItemBtn');
+        const closeItemDetailModalBtn = document.getElementById('closeItemDetailModalBtn');
+
 
         // Game configuration
         const TILE_SIZE = 40; // Size of each tile in pixels
@@ -488,11 +589,13 @@
         let gameActive = true;
         let inCombat = false;
         let inDialogue = false; // New state for dialogue
+        let inItemSelection = false; // New state for item usage
         let player = null;
         let currentEnemy = null;
         let map = null;
         let currentNPC = null; // Store the currently interacting NPC
         let currentDialogueHistory = []; // Stores the chat history for LLM
+        let particles = []; // For visual effects
 
         // Gemini API Configuration
         const GEMINI_API_KEY = ""; // Canvas will provide this at runtime
@@ -506,6 +609,47 @@
             PATH: { id: 2, color: '#A0522D', walkable: true, encounterRate: 0.02, name: 'Đường đi' }, // Path, low encounter
             WATER: { id: 3, color: '#4682B4', walkable: false, encounterRate: 0, name: 'Nước' } // Water, unwalkable
         };
+
+        // Item Definitions
+        const ITEM_DATABASE = {
+            POTION: {
+                id: 'potion',
+                name: 'Bình Hồi Phục',
+                description: 'Hồi phục 30 HP cho Victini.',
+                type: 'consumable',
+                effect: { type: 'heal', value: 30 }
+            },
+            SUPER_POTION: {
+                id: 'super_potion',
+                name: 'Bình Hồi Phục Cao Cấp',
+                description: 'Hồi phục 60 HP cho Victini.',
+                type: 'consumable',
+                effect: { type: 'heal', value: 60 }
+            }
+            // Add more items here
+        };
+
+        class InventoryItem {
+            constructor(itemId, quantity = 1) {
+                const itemData = ITEM_DATABASE[itemId.toUpperCase()];
+                if (!itemData) {
+                    console.error(`Item with ID "${itemId}" not found in ITEM_DATABASE.`);
+                    return;
+                }
+                this.id = itemData.id;
+                this.name = itemData.name;
+                this.description = itemData.description;
+                this.type = itemData.type;
+                this.effect = itemData.effect;
+                this.quantity = quantity;
+            }
+
+            // Method to get serializable data for saving
+            getSerializableData() {
+                return { id: this.id, quantity: this.quantity };
+            }
+        }
+
 
         // Player (Victini) and Enemy (Pokemon) Definitions
         class Entity {
@@ -560,6 +704,7 @@
                 this.level = 1;
                 this.exp = 0;
                 this.expToNextLevel = 100;
+                this.inventory = []; // New inventory array
             }
 
             gainExp(amount) {
@@ -583,6 +728,47 @@
                 updatePlayerStatsDisplay();
             }
 
+            addItemToInventory(itemId, quantity = 1) {
+                const existingItem = this.inventory.find(item => item.id === itemId);
+                if (existingItem) {
+                    existingItem.quantity += quantity;
+                    this.log(`Bạn nhận thêm ${quantity}x ${existingItem.name}.`);
+                } else {
+                    const newItem = new InventoryItem(itemId, quantity);
+                    if (newItem.id) { // Check if item was successfully created
+                        this.inventory.push(newItem);
+                        this.log(`Bạn nhận được ${quantity}x ${newItem.name}.`);
+                    }
+                }
+                updateInventoryDisplay();
+            }
+
+            removeItemFromInventory(itemId, quantity = 1) {
+                const itemIndex = this.inventory.findIndex(item => item.id === itemId);
+                if (itemIndex > -1) {
+                    this.inventory[itemIndex].quantity -= quantity;
+                    if (this.inventory[itemIndex].quantity <= 0) {
+                        this.inventory.splice(itemIndex, 1);
+                    }
+                    updateInventoryDisplay();
+                    return true;
+                }
+                return false;
+            }
+
+            useItem(item) {
+                if (item.type === 'consumable') {
+                    if (item.effect.type === 'heal') {
+                        const healAmount = item.effect.value;
+                        this.heal(healAmount);
+                        this.removeItemFromInventory(item.id);
+                        this.log(`Victini sử dụng ${item.name} và hồi phục ${healAmount} HP.`);
+                        return true;
+                    }
+                }
+                return false;
+            }
+
             // Method to get serializable data for saving
             getSerializableData() {
                 return {
@@ -595,7 +781,8 @@
                     defense: this.defense,
                     level: this.level,
                     exp: this.exp,
-                    expToNextLevel: this.expToNextLevel
+                    expToNextLevel: this.expToNextLevel,
+                    inventory: this.inventory.map(item => item.getSerializableData()) // Save inventory
                 };
             }
 
@@ -611,7 +798,8 @@
                 this.level = data.level;
                 this.exp = data.exp;
                 this.expToNextLevel = data.expToNextLevel;
-                // Moves and color are fixed for Victini, no need to load
+                // Reconstruct inventory items
+                this.inventory = data.inventory.map(itemData => new InventoryItem(itemData.id, itemData.quantity));
             }
         }
 
@@ -631,12 +819,13 @@
 
         // NPC Definition
         class NPC {
-            constructor(name, x, y, color, initialGreeting) {
+            constructor(name, x, y, color, initialGreeting, interactionTriggered = false) {
                 this.name = name;
                 this.x = x;
                 this.y = y;
                 this.color = color;
                 this.initialGreeting = initialGreeting;
+                this.interactionTriggered = interactionTriggered; // To track first interaction for quests/items
             }
 
             draw() {
@@ -653,11 +842,33 @@
                 ctx.textBaseline = 'middle';
                 ctx.fillText(this.name.charAt(0), this.x * TILE_SIZE + TILE_SIZE / 2, this.y * TILE_SIZE + TILE_SIZE / 2);
             }
+
+            // Method to get serializable data for saving
+            getSerializableData() {
+                return {
+                    name: this.name,
+                    x: this.x,
+                    y: this.y,
+                    color: this.color,
+                    initialGreeting: this.initialGreeting,
+                    interactionTriggered: this.interactionTriggered
+                };
+            }
+
+            // Method to load data into NPC object
+            loadFromData(data) {
+                this.name = data.name;
+                this.x = data.x;
+                this.y = data.y;
+                this.color = data.color;
+                this.initialGreeting = data.initialGreeting;
+                this.interactionTriggered = data.interactionTriggered;
+            }
         }
 
         const NPCs = [
             new NPC('Giáo sư Elm', 7, 5, '#4A90E2', 'Chào mừng bạn đến với vùng đất này! Tôi là Giáo sư Elm, chuyên nghiên cứu về Pokemon và sự tiến hóa của chúng. Bạn có câu hỏi nào không?'),
-            // Add more NPCs here in the future
+            new NPC('Thầy lang', 3, 8, '#70C070', 'Chào Victini! Tôi là Thầy lang của làng. Dường như bạn đang bắt đầu cuộc hành trình của mình. Hãy nhận lấy bình hồi phục này, nó sẽ giúp ích cho bạn trong các trận chiến đấy!', false) // New NPC
         ];
 
 
@@ -764,20 +975,61 @@
             gameActive = true;
             inCombat = false;
             inDialogue = false;
+            inItemSelection = false;
             currentEnemy = null;
             currentNPC = null;
+            particles = []; // Clear particles on reset
             messageLog.innerHTML = `<p>Chào mừng bạn đến với thế giới của Victini!</p><p>Bạn là một con người được tái sinh thành Victini, hãy khám phá và phát triển sức mạnh của mình!</p>`;
             drawGame();
             updatePlayerStatsDisplay();
+            updateInventoryDisplay(); // Update new inventory display
             hideCombatOverlay();
             hideModal();
             hideNpcDialogueModal();
+            hideItemDetailModal();
+            // Reset NPC interaction status if needed (for debug reset)
+            NPCs.forEach(npc => {
+                if (npc.name === 'Thầy lang') {
+                    npc.interactionTriggered = false;
+                }
+            });
+        }
+
+        // Main game loop for animations (particles)
+        let lastTime = 0;
+        function gameLoop(currentTime) {
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            // Update particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.05; // Fade out
+                if (p.alpha <= 0.1) {
+                    particles.splice(i, 1); // Remove faded particles
+                }
+            }
+
+            drawGame(); // Redraw everything each frame to include particles
+            if (gameActive) {
+                requestAnimationFrame(gameLoop);
+            }
         }
 
         // Draw everything on canvas
         function drawGame() {
             ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
             map.draw(); // Draw map
+
+            // Draw particles
+            particles.forEach(p => {
+                ctx.fillStyle = `rgba(${p.r}, ${p.g}, ${p.b}, ${p.alpha})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
 
             // Draw NPCs
             NPCs.forEach(npc => npc.draw());
@@ -799,9 +1051,27 @@
             ctx.fillText('V', player.x * TILE_SIZE + TILE_SIZE / 2, player.y * TILE_SIZE + TILE_SIZE / 2);
         }
 
+        // Particle effect for player movement
+        function createMovementParticles() {
+            const centerX = player.x * TILE_SIZE + TILE_SIZE / 2;
+            const centerY = player.y * TILE_SIZE + TILE_SIZE / 2;
+            for (let i = 0; i < 5; i++) { // Create 5 particles
+                particles.push({
+                    x: centerX + (Math.random() - 0.5) * 10,
+                    y: centerY + (Math.random() - 0.5) * 10,
+                    vx: (Math.random() - 0.5) * 1, // small random velocity
+                    vy: (Math.random() - 0.5) * 1,
+                    size: Math.random() * 3 + 1, // size between 1 and 4
+                    r: 255, g: 255, b: 0, // Yellowish sparkles
+                    alpha: 1
+                });
+            }
+        }
+
+
         // Player movement
         function movePlayer(dx, dy) {
-            if (!gameActive || inCombat || inDialogue) return;
+            if (!gameActive || inCombat || inDialogue || inItemSelection) return;
 
             const newX = player.x + dx;
             const newY = player.y + dy;
@@ -809,8 +1079,9 @@
             if (map.isWalkable(newX, newY)) {
                 player.x = newX;
                 player.y = newY;
-                drawGame();
-
+                createMovementParticles(); // Generate particles on movement
+                // drawGame() is now called by gameLoop
+                
                 // Chance to encounter wild Pokemon based on tile type
                 const currentTile = map.getTileType(player.x, player.y);
                 if (currentTile && Math.random() < currentTile.encounterRate) {
@@ -871,7 +1142,7 @@
                 player.heal(0); // Update message for heal
             }
             currentEnemy = null; // Clear enemy
-            drawGame(); // Redraw map
+            drawGame(); // Redraw map (gameLoop handles this)
             updatePlayerStatsDisplay();
         }
 
@@ -985,9 +1256,11 @@
         // Save/Load Game
         function saveGame() {
             try {
+                const serializableNPCs = NPCs.map(npc => npc.getSerializableData());
                 const saveData = {
                     player: player.getSerializableData(),
-                    map: map.getSerializableData()
+                    map: map.getSerializableData(),
+                    npcs: serializableNPCs // Save NPC state
                 };
                 localStorage.setItem('victiniGameSave', JSON.stringify(saveData));
                 player.log("Game đã được lưu!");
@@ -1006,10 +1279,19 @@
                     const data = JSON.parse(savedData);
                     player.loadFromData(data.player);
                     map.loadFromData(data.map);
+                    // Load NPC state
+                    if (data.npcs) {
+                        NPCs.forEach((npc, index) => {
+                            if (data.npcs[index]) {
+                                npc.loadFromData(data.npcs[index]);
+                            }
+                        });
+                    }
                     player.log("Game đã được tải!");
                     showModal("Game đã được tải thành công!");
                     drawGame();
                     updatePlayerStatsDisplay();
+                    updateInventoryDisplay(); // Refresh inventory
                 } else {
                     player.log("Không tìm thấy dữ liệu lưu.");
                     showModal("Không tìm thấy dữ liệu lưu.");
@@ -1026,13 +1308,24 @@
             gameActive = false; // Pause game while in dialogue
             inDialogue = true;
             currentNPC = npc;
-            currentDialogueHistory = []; // Reset history for new conversation
-            dialogueHistoryDiv.innerHTML = '';
+            currentDialogueHistory = [{ role: "model", parts: [{ text: npc.initialGreeting }] }]; // Start with NPC's initial greeting
+            dialogueHistoryDiv.innerHTML = `<p class="npc-message">${npc.name}: ${npc.initialGreeting}</p>`;
             npcNameDisplay.textContent = npc.name;
 
-            appendDialogue('NPC', npc.initialGreeting);
+            // Specific interaction for Thầy lang
+            if (npc.name === 'Thầy lang' && !npc.interactionTriggered) {
+                player.addItemToInventory('potion', 1);
+                npc.interactionTriggered = true; // Mark as interacted
+                // No need for LLM call on first interaction, just give item and then allow chat
+                dialogueHistoryDiv.innerHTML += `<p class="npc-message">${npc.name}: Hãy nhận lấy bình hồi phục này, nó sẽ giúp ích cho bạn trong các trận chiến đấy!</p>`;
+                playerDialogueInput.focus();
+            } else {
+                // For other NPCs or subsequent interactions, start normal LLM chat
+                playerDialogueInput.focus(); // Focus input field
+            }
+
             npcDialogueModal.classList.remove('hidden');
-            playerDialogueInput.focus(); // Focus input field
+
         }
 
         function hideNpcDialogueModal() {
@@ -1098,6 +1391,66 @@
             }
         }
 
+        // Inventory Functions
+        function updateInventoryDisplay() {
+            inventoryGrid.innerHTML = ''; // Clear current display
+            if (player.inventory.length === 0) {
+                inventoryGrid.innerHTML = '<p class="text-center text-gray-400 col-span-4">Túi đồ trống.</p>';
+                return;
+            }
+
+            player.inventory.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.classList.add('inventory-item', 'rounded-lg', 'p-2', 'relative');
+                itemDiv.innerHTML = `
+                    <p class="font-semibold text-sm">${item.name}</p>
+                    <span class="item-quantity">x${item.quantity}</span>
+                `;
+                itemDiv.dataset.itemId = item.id;
+                itemDiv.addEventListener('click', () => showItemDetail(item));
+                inventoryGrid.appendChild(itemDiv);
+            });
+        }
+
+        function showItemDetail(item) {
+            inItemSelection = true; // Pause game while in item detail
+            itemNameDetail.textContent = item.name;
+            itemDescriptionDetail.textContent = item.description;
+            useItemBtn.dataset.itemId = item.id; // Store item ID on button
+            useItemBtn.dataset.isCombat = inCombat ? 'true' : 'false'; // Pass combat state
+            useItemBtn.disabled = player.hp === player.maxHp && item.type === 'consumable' && item.effect.type === 'heal'; // Disable if full HP and healing item
+
+            itemDetailModal.classList.remove('hidden');
+        }
+
+        function hideItemDetailModal() {
+            inItemSelection = false;
+            itemDetailModal.classList.add('hidden');
+            // If we came from combat, re-enable combat actions if needed
+            if (inCombat) {
+                // Optionally re-enable specific combat buttons if they were disabled for item selection
+            }
+        }
+
+        function handleUseItem() {
+            const itemId = useItemBtn.dataset.itemId;
+            const isCombat = useItemBtn.dataset.isCombat === 'true';
+            const item = player.inventory.find(i => i.id === itemId);
+
+            if (item && player.useItem(item)) {
+                hideItemDetailModal();
+                if (isCombat) {
+                    // After using item in combat, it's the enemy's turn
+                    setTimeout(() => {
+                        handleEnemyTurn();
+                    }, 1000);
+                }
+            } else {
+                player.log("Không thể sử dụng vật phẩm này lúc này.");
+            }
+            updatePlayerStatsDisplay(); // Update HP display
+        }
+
 
         // Event Listeners for UI
         document.getElementById('moveUp').addEventListener('click', () => movePlayer(0, -1));
@@ -1106,7 +1459,7 @@
         document.getElementById('moveRight').addEventListener('click', () => movePlayer(1, 0));
 
         document.getElementById('interact').addEventListener('click', () => {
-            if (!gameActive || inCombat || inDialogue) return;
+            if (!gameActive || inCombat || inDialogue || inItemSelection) return;
 
             // Check if player is next to an NPC
             let foundNPC = null;
@@ -1135,6 +1488,17 @@
         document.getElementById('searingShotBtn').addEventListener('click', () => handlePlayerTurn(player.moves[2]));
         document.getElementById('focusBlastBtn').addEventListener('click', () => handlePlayerTurn(player.moves[3]));
         document.getElementById('runBtn').addEventListener('click', attemptRun);
+        document.getElementById('useItemCombatBtn').addEventListener('click', () => {
+            if (player.inventory.length > 0) {
+                showModal("Chọn một vật phẩm từ túi đồ để sử dụng.");
+                // We'll reuse the item detail modal for this, but first allow selection
+                // Temporarily show a message to guide user, then let them click on items in inventory panel
+                // This button mainly just tells the player they can use an item
+            } else {
+                showModal("Túi đồ của bạn trống!");
+            }
+        });
+
 
         closeModalBtn.addEventListener('click', hideModal);
 
@@ -1147,21 +1511,42 @@
         });
         closeDialogueModalBtn.addEventListener('click', hideNpcDialogueModal);
 
+        // Item Detail Modal event listeners
+        useItemBtn.addEventListener('click', handleUseItem);
+        closeItemDetailModalBtn.addEventListener('click', hideItemDetailModal);
+
 
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
-            if (inCombat || messageModal.classList.contains('hidden') === false) return; // Disable movement during combat or while general modal is open
-
-            if (inDialogue) { // Handle dialogue modal inputs
+            // Priority for modals/dialogue
+            if (messageModal.classList.contains('hidden') === false) {
+                if (e.key === 'Escape' || e.key === 'Enter') {
+                    hideModal();
+                }
+                return;
+            }
+            if (inDialogue) {
                 if (e.key === 'Enter' && document.activeElement === playerDialogueInput) {
                     e.preventDefault(); // Prevent new line in input
                     sendDialogue();
                 } else if (e.key === 'Escape') {
                     hideNpcDialogueModal();
                 }
-                return; // Prevent other game actions while in dialogue
+                return;
+            }
+            if (inItemSelection) {
+                if (e.key === 'Escape') {
+                    hideItemDetailModal();
+                }
+                return;
+            }
+            if (inCombat) {
+                // Combat actions are handled by dedicated buttons
+                return;
             }
 
+
+            // Game movement controls
             switch (e.key) {
                 case 'ArrowUp':
                 case 'w':
@@ -1183,16 +1568,14 @@
                     // Re-trigger interact logic for keyboard input
                     document.getElementById('interact').click();
                     break;
-                case 'Escape': // Close general modal with Escape key
-                    if (messageModal.classList.contains('hidden') === false) {
-                        hideModal();
-                    }
-                    break;
             }
         });
 
         // Initialize the game when the window loads
-        window.onload = initializeGame;
+        window.onload = () => {
+            initializeGame();
+            requestAnimationFrame(gameLoop); // Start the game loop for particles
+        };
 
     </script>
 </body>
