@@ -1,1582 +1,418 @@
-
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pokemon Tái Sinh: Victini Phiên Bản 4</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <title>Pokémon Game V6</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #1a202c; /* Dark background */
-            color: #e2e8f0; /* Light text */
+            background-color: #111;
+            color: #eee;
+            font-family: 'Press Start 2P', cursive;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            min-height: 100vh;
+            justify-content: center;
+            height: 100vh;
             margin: 0;
-            overflow: hidden; /* Prevent scrolling */
+            image-rendering: pixelated;
+        }
+        #game-container {
+            position: relative;
+            border: 4px solid #555;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
         canvas {
-            border: 2px solid #4a5568;
-            background-color: #2d3748; /* Darker canvas background */
             display: block;
-            margin: 0 auto;
-            image-rendering: pixelated; /* For pixel art feel */
-            max-width: 100%; /* Ensure canvas fits on smaller screens */
-            height: auto; /* Maintain aspect ratio */
+            background-color: #000;
         }
-        .game-container {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            max-width: 900px; /* Max width for larger screens */
-            width: 100%;
-            padding: 1rem;
-            box-sizing: border-box;
-        }
-        .game-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .game-controls button {
-            background-color: #4c51bf; /* Indigo */
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: bold;
-            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .game-controls button:hover {
-            background-color: #667eea; /* Lighter indigo */
-            transform: translateY(-2px);
-        }
-        .game-controls button:active {
-            background-color: #3b3f86; /* Darker indigo */
-            transform: translateY(0);
-        }
-        .message-log {
-            background-color: #2d3748;
-            border: 1px solid #4a5568;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            min-height: 100px;
-            max-height: 150px; /* Limit height for message log */
-            overflow-y: auto;
-            font-size: 0.9rem;
-            color: #cbd5e0;
-        }
-
-        /* Responsive adjustments */
-        @media (min-width: 640px) { /* Small screens and up */
-            .game-container {
-                flex-direction: row;
-                justify-content: center;
-            }
-            .game-panel {
-                flex: 1;
-            }
-            .game-controls {
-                flex-direction: column; /* Keep controls as column on small screens */
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-        }
-
-        /* Combat UI */
-        .combat-ui {
+        /* --- Giao diện Chiến đấu --- */
+        #battle-scene {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            display: flex;
+            background-color: #000;
+            display: none; /* Ẩn ban đầu */
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 1rem;
-            box-sizing: border-box;
-            z-index: 900; /* Below modals */
+            justify-content: space-between;
         }
-        .combat-box {
-            background-color: #2d3748;
-            border: 2px solid #4a5568;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            width: 90%;
-            max-width: 600px;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            text-align: center;
-        }
-        .combat-stats {
-            display: flex;
-            justify-content: space-around;
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #a0aec0;
-        }
-        .combat-actions {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 0.75rem;
-        }
-        .combat-actions button {
-            background-color: #4c51bf;
-            color: white;
-            padding: 0.75rem 1.25rem;
-            border-radius: 0.5rem;
-            font-weight: bold;
-            transition: background-color 0.2s ease-in-out;
-            flex: 1 1 auto; /* Allows buttons to grow and shrink */
-            min-width: 120px; /* Minimum width for buttons */
-        }
-        .combat-actions button:hover {
-            background-color: #667eea;
-        }
-        .combat-log {
-            background-color: #1a202c;
-            border: 1px solid #4a5568;
-            border-radius: 0.5rem;
-            padding: 0.75rem;
-            min-height: 60px;
-            max-height: 120px;
-            overflow-y: auto;
-            font-size: 0.85rem;
-            color: #cbd5e0;
-            text-align: left;
-        }
-        .health-bar {
-            background-color: #e53e3e; /* Red for low health */
-            height: 10px;
-            border-radius: 5px;
-            transition: width 0.3s ease-in-out;
-            width: 100%;
-        }
-        .health-bar-bg {
-            background-color: #4a5568;
-            height: 10px;
-            border-radius: 5px;
-            width: 100%;
-        }
-        .health-container {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
-        .health-label {
-            font-size: 0.8rem;
-            color: #cbd5e0;
-            width: 40px; /* Fixed width for label */
-            text-align: right;
-        }
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
+        .pokemon-display {
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
-        }
-        .modal-content {
-            background-color: #2d3748;
-            padding: 2rem;
-            border-radius: 1rem;
-            text-align: center;
-            width: 80%;
-            max-width: 400px;
-            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
-        }
-        .modal-content button {
-            background-color: #4c51bf;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: bold;
-            margin-top: 1rem;
-            transition: background-color 0.2s;
-        }
-        .modal-content button:hover {
-            background-color: #667eea;
-        }
-
-        /* Player Stats Panel */
-        .player-stats-panel {
-            background-color: #2d3748;
-            border: 1px solid #4a5568;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        /* NPC Dialogue Modal */
-        .npc-dialogue-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.85);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1050; /* Above other modals */
-        }
-        .npc-dialogue-box {
-            background-color: #2d3748;
-            border: 2px solid #4a5568;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            width: 90%;
-            max-width: 700px;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .dialogue-history {
-            background-color: #1a202c;
-            border: 1px solid #4a5568;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            min-height: 200px;
-            max-height: 400px;
-            overflow-y: auto;
-            font-size: 1rem;
-            color: #cbd5e0;
-            text-align: left;
-        }
-        .dialogue-history p {
-            margin-bottom: 0.5rem;
-        }
-        .dialogue-history .player-message {
-            color: #81e6d9; /* Teal for player */
-            text-align: right;
-        }
-        .dialogue-history .npc-message {
-            color: #a78bfa; /* Purple for NPC */
-            text-align: left;
-        }
-        .dialogue-input-area {
-            display: flex;
-            gap: 0.5rem;
-        }
-        .dialogue-input-area input {
             flex-grow: 1;
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-            border: 1px solid #4a5568;
-            background-color: #4a5568;
-            color: white;
-            font-size: 1rem;
         }
-        .dialogue-input-area input:focus {
-            outline: none;
-            border-color: #667eea;
+        #enemy-pokemon, #player-pokemon {
+            width: 120px;
+            height: 120px;
         }
-        .dialogue-input-area button {
-            background-color: #4c51bf;
-            color: white;
-            padding: 0.75rem 1.25rem;
-            border-radius: 0.5rem;
-            font-weight: bold;
-            transition: background-color 0.2s;
+        #player-pokemon {
+            width: 100px;
+            height: 100px;
         }
-        .dialogue-input-area button:hover {
-            background-color: #667eea;
+        .info-box {
+            background-color: #f8f8f8;
+            border: 4px solid #555;
+            border-radius: 8px;
+            padding: 8px;
+            color: #333;
+            width: 200px;
+            font-size: 14px;
         }
-        .dialogue-input-area button:disabled {
-            background-color: #4a5568;
-            cursor: not-allowed;
-        }
-        .loading-spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #4c51bf;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
-            display: none; /* Hidden by default */
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .sparkle-button {
-            position: relative;
-            overflow: hidden;
-        }
-        .sparkle-button::before {
-            content: '✨';
+        #enemy-info {
             position: absolute;
-            font-size: 0.8em;
-            opacity: 0;
-            transition: all 0.5s ease-out;
-            pointer-events: none;
-            animation: sparkle-hide 0.5s forwards;
+            top: 40px;
+            left: 40px;
         }
-        .sparkle-button:hover::before {
-            opacity: 1;
-            animation: sparkle-show 0.5s forwards;
+        #player-info {
+            position: absolute;
+            bottom: 120px;
+            right: 40px;
         }
-        .sparkle-button.top-left::before {
-            top: 5px;
-            left: 5px;
+        .hp-bar-container {
+            background-color: #ddd;
+            border-radius: 4px;
+            height: 10px;
+            margin-top: 5px;
+            border: 1px solid #aaa;
         }
-        .sparkle-button.top-right::before {
-            top: 5px;
-            right: 5px;
+        .hp-bar {
+            background-color: #4caf50; /* Green */
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease-in-out;
         }
-        @keyframes sparkle-show {
-            from { transform: scale(0) rotate(0deg); opacity: 0; }
-            to { transform: scale(1) rotate(360deg); opacity: 1; }
+        /* --- Hộp thông báo & Hành động --- */
+        #message-box {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background-color: #f8f8f8;
+            border-top: 4px solid #555;
+            color: #333;
+            display: flex;
         }
-        @keyframes sparkle-hide {
-            from { transform: scale(1) rotate(360deg); opacity: 1; }
-            to { transform: scale(0) rotate(0deg); opacity: 0; }
+        #message-text-container {
+            flex-grow: 1;
+            padding: 20px;
+            font-size: 16px;
         }
-
-        /* Inventory Panel */
-        .inventory-panel {
-            background-color: #2d3748;
-            border: 1px solid #4a5568;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin-top: 1rem;
+        #battle-actions {
+            width: 200px;
+            border-left: 4px solid #555;
+            display: flex;
+            flex-direction: column;
         }
-        .inventory-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr); /* 4 columns for items */
-            gap: 0.75rem;
-        }
-        .inventory-item {
-            background-color: #4a5568;
-            border: 1px solid #667eea;
-            border-radius: 0.5rem;
-            padding: 0.5rem;
-            text-align: center;
+        #battle-actions button {
+            flex-grow: 1;
+            background-color: #fff;
+            border: none;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 18px;
             cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-            position: relative;
-        }
-        .inventory-item:hover {
-            background-color: #5a647d;
-            transform: translateY(-2px);
-        }
-        .item-quantity {
-            position: absolute;
-            bottom: 2px;
-            right: 4px;
-            background-color: rgba(0, 0, 0, 0.6);
-            color: white;
-            font-size: 0.75rem;
-            padding: 1px 4px;
-            border-radius: 0.25rem;
-        }
-
-        /* Item Detail Modal */
-        .item-detail-modal-content {
-            background-color: #2d3748;
-            padding: 2rem;
-            border-radius: 1rem;
-            text-align: center;
-            width: 80%;
-            max-width: 400px;
-            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
-        }
-        .item-detail-modal-content button {
-            margin: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: bold;
             transition: background-color 0.2s;
         }
-        .item-detail-modal-content button.use-btn {
-            background-color: #48bb78; /* Green */
-            color: white;
+        #battle-actions button:hover {
+            background-color: #eee;
         }
-        .item-detail-modal-content button.use-btn:hover {
-            background-color: #68d391;
+        #battle-actions button:first-child {
+            border-bottom: 2px solid #555;
         }
-        .item-detail-modal-content button.close-btn {
-            background-color: #e53e3e; /* Red */
-            color: white;
+        #controls-info {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #aaa;
         }
-        .item-detail-modal-content button.close-btn:hover {
-            background-color: #fc8181;
-        }
-
     </style>
 </head>
 <body>
-    <div class="game-container">
-        <div class="game-panel flex flex-col gap-4">
-            <h1 class="text-3xl font-bold text-center mb-4 text-orange-400">Pokemon Tái Sinh: Victini Phiên Bản 4</h1>
-            <div class="player-stats-panel">
-                <h3 class="text-xl font-bold text-green-300 mb-2">Chỉ số Victini</h3>
-                <p id="playerLevelExp">Cấp: 1 | EXP: 0/100</p>
-                <p id="playerCurrentStats">HP: 100/100 | Tấn công: 15 | Phòng thủ: 10</p>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="battle-scene">
+            <div class="pokemon-display" style="justify-content: flex-end; padding-right: 60px; padding-top: 60px;">
+                <img id="enemy-pokemon" src="" alt="Đối thủ Pokémon">
             </div>
-            <canvas id="gameCanvas" width="600" height="400"></canvas>
-            <div class="message-log" id="messageLog">
-                Chào mừng bạn đến với thế giới của Victini!
+            <div class="pokemon-display" style="justify-content: flex-start; padding-left: 60px;">
+                <img id="player-pokemon" src="" alt="Pokémon của bạn">
             </div>
-            <div class="inventory-panel">
-                <h3 class="text-xl font-bold text-yellow-300 mb-2">Túi đồ</h3>
-                <div id="inventoryGrid" class="inventory-grid">
-                    <!-- Items will be rendered here -->
+            <div id="enemy-info" class="info-box">
+                <div id="enemy-name"></div>
+                <div class="hp-bar-container"><div id="enemy-hp-bar" class="hp-bar"></div></div>
+            </div>
+            <div id="player-info" class="info-box">
+                <div id="player-name"></div>
+                <div class="hp-bar-container"><div id="player-hp-bar" class="hp-bar"></div></div>
+            </div>
+            <div id="message-box">
+                <div id="message-text-container">
+                    <p id="message-text"></p>
+                </div>
+                <div id="battle-actions">
+                    <button id="fight-btn">Tấn công</button>
+                    <button id="run-btn">Bỏ chạy</button>
                 </div>
             </div>
         </div>
-        <div class="game-controls w-full md:w-auto p-4 bg-gray-700 rounded-lg shadow-lg">
-            <h2 class="text-xl font-bold mb-3 text-center text-blue-300">Điều khiển</h2>
-            <div class="grid grid-cols-3 gap-2">
-                <div></div>
-                <button id="moveUp" class="rounded-full flex items-center justify-center p-3 text-2xl">▲</button>
-                <div></div>
-
-                <button id="moveLeft" class="rounded-full flex items-center justify-center p-3 text-2xl">◄</button>
-                <button id="interact" class="bg-green-600 hover:bg-green-700 active:bg-green-800 rounded-lg p-3 sparkle-button top-right">Tương tác</button>
-                <button id="moveRight" class="rounded-full flex items-center justify-center p-3 text-2xl">►</button>
-
-                <div></div>
-                <button id="moveDown" class="rounded-full flex items-center justify-center p-3 text-2xl">▼</button>
-                <div></div>
-            </div>
-            <div class="flex flex-col gap-2 mt-4">
-                <button id="saveGame" class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 sparkle-button top-left">Lưu Game ✨</button>
-                <button id="loadGame" class="bg-purple-600 hover:bg-purple-700 active:bg-purple-800 sparkle-button top-right">Tải Game ✨</button>
-                <button id="debugReset" class="bg-red-600 hover:bg-red-700 active:bg-red-800">Đặt lại (Debug)</button>
-            </div>
-        </div>
     </div>
 
-    <!-- Combat UI Overlay -->
-    <div id="combatOverlay" class="combat-ui hidden">
-        <div class="combat-box">
-            <h3 class="text-2xl font-bold text-yellow-300 mb-2" id="combatTitle">Chiến đấu!</h3>
-            <div class="flex justify-between items-center mb-4">
-                <div class="text-center">
-                    <p class="text-lg font-semibold text-orange-300">Victini</p>
-                    <div class="health-container">
-                        <span class="health-label">HP:</span>
-                        <div class="health-bar-bg flex-grow">
-                            <div id="playerHealthBar" class="health-bar" style="width: 100%;"></div>
-                        </div>
-                    </div>
-                    <p id="playerStats" class="text-sm mt-1">ATK: 10, DEF: 8</p>
-                </div>
-                <div class="text-center">
-                    <p class="text-lg font-semibold text-purple-300" id="enemyName">Đối thủ</p>
-                    <div class="health-container">
-                        <span class="health-label">HP:</span>
-                        <div class="health-bar-bg flex-grow">
-                            <div id="enemyHealthBar" class="health-bar" style="width: 100%;"></div>
-                        </div>
-                    </div>
-                    <p id="enemyStats" class="text-sm mt-1">ATK: 8, DEF: 6</p>
-                </div>
-            </div>
-            <div id="combatLog" class="combat-log"></div>
-            <div class="combat-actions" id="combatActions">
-                <button id="attackBtn">Tấn công</button>
-                <button id="vcreateBtn">V-Create</button>
-                <button id="searingShotBtn">Searing Shot</button>
-                <button id="focusBlastBtn">Focus Blast</button>
-                <button id="useItemCombatBtn">Dùng Vật phẩm</button>
-                <button id="runBtn">Chạy</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- General Message Modal -->
-    <div id="messageModal" class="modal hidden">
-        <div class="modal-content">
-            <p id="modalMessage" class="text-lg font-semibold mb-4"></p>
-            <button id="closeModal">Đóng</button>
-        </div>
-    </div>
-
-    <!-- NPC Dialogue Modal -->
-    <div id="npcDialogueModal" class="npc-dialogue-modal hidden">
-        <div class="npc-dialogue-box">
-            <h3 class="text-2xl font-bold text-indigo-300 mb-2">Trò chuyện với <span id="npcNameDisplay"></span></h3>
-            <div id="dialogueHistory" class="dialogue-history">
-                <!-- Dialogue messages will be appended here -->
-            </div>
-            <div class="dialogue-input-area">
-                <input type="text" id="playerDialogueInput" placeholder="Nói gì đó..." class="flex-grow">
-                <button id="sendDialogueBtn">Gửi ✨</button>
-            </div>
-            <div class="loading-spinner" id="dialogueLoadingSpinner"></div>
-            <button id="closeDialogueModalBtn" class="mt-4 bg-red-600 hover:bg-red-700 active:bg-red-800">Kết thúc trò chuyện</button>
-        </div>
-    </div>
-
-    <!-- Item Detail/Use Modal (New) -->
-    <div id="itemDetailModal" class="modal hidden">
-        <div class="item-detail-modal-content">
-            <h3 id="itemNameDetail" class="text-xl font-bold mb-2 text-cyan-300"></h3>
-            <p id="itemDescriptionDetail" class="text-base text-gray-300 mb-4"></p>
-            <div class="flex justify-center gap-4">
-                <button id="useItemBtn" class="use-btn">Sử dụng</button>
-                <button id="closeItemDetailModalBtn" class="close-btn">Đóng</button>
-            </div>
-        </div>
+    <div id="controls-info">
+        Sử dụng các phím mũi tên để di chuyển.
     </div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const messageLog = document.getElementById('messageLog');
-        const combatOverlay = document.getElementById('combatOverlay');
-        const combatLogDiv = document.getElementById('combatLog');
-        const playerHealthBar = document.getElementById('playerHealthBar');
-        const enemyHealthBar = document.getElementById('enemyHealthBar');
-        const enemyNameDisplay = document.getElementById('enemyName');
-        const playerStatsDisplay = document.getElementById('playerStats');
-        const enemyStatsDisplay = document.getElementById('enemyStats');
-        const combatActionsDiv = document.getElementById('combatActions');
-        const messageModal = document.getElementById('messageModal');
-        const modalMessage = document.getElementById('modalMessage');
-        const closeModalBtn = document.getElementById('closeModal');
+        const battleScene = document.getElementById('battle-scene');
+        const messageText = document.getElementById('message-text');
+        const fightBtn = document.getElementById('fight-btn');
+        const runBtn = document.getElementById('run-btn');
 
-        // Player Stats Panel Elements
-        const playerLevelExpDisplay = document.getElementById('playerLevelExp');
-        const playerCurrentStatsDisplay = document.getElementById('playerCurrentStats');
+        const TILE_SIZE = 48;
+        const MAP_COLS = 15;
+        const MAP_ROWS = 11;
+        canvas.width = TILE_SIZE * MAP_COLS;
+        canvas.height = TILE_SIZE * MAP_ROWS;
 
-        // NPC Dialogue Modal Elements
-        const npcDialogueModal = document.getElementById('npcDialogueModal');
-        const npcNameDisplay = document.getElementById('npcNameDisplay');
-        const dialogueHistoryDiv = document.getElementById('dialogueHistory');
-        const playerDialogueInput = document.getElementById('playerDialogueInput');
-        const sendDialogueBtn = document.getElementById('sendDialogueBtn');
-        const closeDialogueModalBtn = document.getElementById('closeDialogueModalBtn');
-        const dialogueLoadingSpinner = document.getElementById('dialogueLoadingSpinner');
-
-        // Inventory Elements
-        const inventoryGrid = document.getElementById('inventoryGrid');
-        const useItemCombatBtn = document.getElementById('useItemCombatBtn');
-
-        // Item Detail Modal Elements
-        const itemDetailModal = document.getElementById('itemDetailModal');
-        const itemNameDetail = document.getElementById('itemNameDetail');
-        const itemDescriptionDetail = document.getElementById('itemDescriptionDetail');
-        const useItemBtn = document.getElementById('useItemBtn');
-        const closeItemDetailModalBtn = document.getElementById('closeItemDetailModalBtn');
-
-
-        // Game configuration
-        const TILE_SIZE = 40; // Size of each tile in pixels
-        const MAP_WIDTH = 15; // Number of tiles wide
-        const MAP_HEIGHT = 10; // Number of tiles high
-        canvas.width = MAP_WIDTH * TILE_SIZE;
-        canvas.height = MAP_HEIGHT * TILE_SIZE;
-
-        // Game State
-        let gameActive = true;
-        let inCombat = false;
-        let inDialogue = false; // New state for dialogue
-        let inItemSelection = false; // New state for item usage
-        let player = null;
-        let currentEnemy = null;
-        let map = null;
-        let currentNPC = null; // Store the currently interacting NPC
-        let currentDialogueHistory = []; // Stores the chat history for LLM
-        let particles = []; // For visual effects
-
-        // Gemini API Configuration
-        const GEMINI_API_KEY = ""; // Canvas will provide this at runtime
-        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
-
-
-        // Tile types with properties and colors
-        const TILE_TYPES = {
-            GRASS: { id: 0, color: '#6B8E23', walkable: true, encounterRate: 0.15, name: 'Cỏ' }, // Grass, high encounter
-            TREE: { id: 1, color: '#8B4513', walkable: false, encounterRate: 0, name: 'Cây' },   // Tree/Wall, unwalkable
-            PATH: { id: 2, color: '#A0522D', walkable: true, encounterRate: 0.02, name: 'Đường đi' }, // Path, low encounter
-            WATER: { id: 3, color: '#4682B4', walkable: false, encounterRate: 0, name: 'Nước' } // Water, unwalkable
+        let gameState = 'world';
+        let battleCooldown = 0;
+        const battle = {
+            active: false,
+            wildPokemon: null,
+            playerPokemon: null,
+            turn: 'player'
         };
 
-        // Item Definitions
-        const ITEM_DATABASE = {
-            POTION: {
-                id: 'potion',
-                name: 'Bình Hồi Phục',
-                description: 'Hồi phục 30 HP cho Victini.',
-                type: 'consumable',
-                effect: { type: 'heal', value: 30 }
-            },
-            SUPER_POTION: {
-                id: 'super_potion',
-                name: 'Bình Hồi Phục Cao Cấp',
-                description: 'Hồi phục 60 HP cho Victini.',
-                type: 'consumable',
-                effect: { type: 'heal', value: 60 }
-            }
-            // Add more items here
+        const pokemonDatabase = {
+            1: { name: "Bulbasaur", maxHP: 45, color: '#78c850' },
+            4: { name: "Charmander", maxHP: 39, color: '#f08030' },
+            7: { name: "Squirtle", maxHP: 44, color: '#6890f0' },
+            25: { name: "Pikachu", maxHP: 35, color: '#f8d030' }
         };
 
-        class InventoryItem {
-            constructor(itemId, quantity = 1) {
-                const itemData = ITEM_DATABASE[itemId.toUpperCase()];
-                if (!itemData) {
-                    console.error(`Item with ID "${itemId}" not found in ITEM_DATABASE.`);
-                    return;
-                }
-                this.id = itemData.id;
-                this.name = itemData.name;
-                this.description = itemData.description;
-                this.type = itemData.type;
-                this.effect = itemData.effect;
-                this.quantity = quantity;
-            }
+        const assets = {
+            player: new Image(),
+            pokemon: {}
+        };
+        let assetsToLoad = 1 + Object.keys(pokemonDatabase).length;
+        let assetsLoaded = 0;
 
-            // Method to get serializable data for saving
-            getSerializableData() {
-                return { id: this.id, quantity: this.quantity };
+        function assetLoaded(assetName) {
+            assetsLoaded++;
+            console.log(`Tài sản đã tải: ${assetName} (${assetsLoaded}/${assetsToLoad})`);
+            if (assetsLoaded === assetsToLoad) {
+                console.log("Pokémon V6 - Game bắt đầu!");
+                gameLoop();
+            }
+        }
+        
+        function assetFailed(assetName) {
+            console.error(`Không thể tải tài sản: ${assetName}`);
+            assetLoaded(assetName + ' (thất bại)'); // Vẫn tính là đã "tải" để game không bị kẹt
+        }
+
+        function createPokemonSvg(color) {
+            return `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='${encodeURIComponent(color)}' d='M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm-1-11h2v2h-2zm0 4h2v2h-2z'/%3E%3C/svg%3E`;
+        }
+        
+        assets.player.onload = () => assetLoaded('player');
+        assets.player.onerror = () => assetFailed('player');
+        assets.player.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23f44336' d='M12 2C10.9 2 10 2.9 10 4s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z'/%3E%3Ccircle fill='%23fff' cx='12' cy='14' r='1.5'/%3E%3C/svg%3E`;
+
+        for (const id in pokemonDatabase) {
+            const name = pokemonDatabase[id].name;
+            assets.pokemon[id] = new Image();
+            assets.pokemon[id].onload = () => assetLoaded(name);
+            assets.pokemon[id].onerror = () => assetFailed(name);
+            assets.pokemon[id].src = createPokemonSvg(pokemonDatabase[id].color);
+        }
+
+        const mapLayout = [ [0,0,0,0,0,1,1,1,1,1,0,0,0,0,0],[0,1,1,0,0,1,1,1,1,1,0,0,1,1,0],[0,1,1,0,0,1,1,1,1,1,0,0,1,1,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,1,1,1,1,1,1,1,1,1,0,0,0],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[0,0,0,1,1,1,0,0,0,1,1,1,0,0,0],[0,0,0,0,0,0,0,1,1,0,0,0,0,0,0],[0,1,1,0,0,1,1,1,1,1,0,0,1,1,0],[0,1,1,0,0,1,1,1,1,1,0,0,1,1,0] ];
+        function drawMap() {
+            const colors = { PATH: '#d2b48c', GRASS: '#388e3c', GRASS_DARK: '#2e7d32' };
+            for (let r=0; r<MAP_ROWS; r++) for (let c=0; c<MAP_COLS; c++) {
+                ctx.fillStyle = mapLayout[r][c] === 0 ? colors.PATH : (c+r)%2===0 ? colors.GRASS : colors.GRASS_DARK;
+                ctx.fillRect(c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, TILE_SIZE);
             }
         }
 
-
-        // Player (Victini) and Enemy (Pokemon) Definitions
-        class Entity {
-            constructor(name, x, y, hp, maxHp, attack, defense, moves, color) {
-                this.name = name;
-                this.x = x;
-                this.y = y;
-                this.hp = hp;
-                this.maxHp = maxHp;
-                this.attack = attack;
-                this.defense = defense;
-                this.moves = moves;
-                this.color = color;
+        const player = {
+            x: 7, y: 3, isMoving: false,
+            pokemon: [{ id: 25, ...pokemonDatabase[25], currentHP: pokemonDatabase[25].maxHP }],
+            draw() { ctx.drawImage(assets.player, this.x * TILE_SIZE, this.y * TILE_SIZE, TILE_SIZE, TILE_SIZE); },
+            move(dx, dy) {
+                if (this.isMoving || gameState !== 'world' || (dx === 0 && dy === 0)) return;
+                const newX = this.x + dx, newY = this.y + dy;
+                if (newX >= 0 && newX < MAP_COLS && newY >= 0 && newY < MAP_ROWS) {
+                    this.x = newX; this.y = newY; this.isMoving = true;
+                    if (battleCooldown > 0) battleCooldown--;
+                    checkEncounter();
+                    setTimeout(() => { this.isMoving = false; }, 150);
+                }
             }
+        };
 
-            takeDamage(damage) {
-                this.hp -= damage;
-                if (this.hp < 0) this.hp = 0;
-                this.log(`${this.name} nhận ${damage} sát thương!`);
+        function checkEncounter() {
+            if (mapLayout[player.y][player.x] === 1 && battleCooldown <= 0 && Math.random() < 0.25) {
+                startBattle();
             }
+        }
 
-            isFainted() {
-                return this.hp <= 0;
-            }
+        function startBattle() {
+            gameState = 'battle';
+            battle.active = true;
+            battle.turn = 'player';
+            
+            const wildPokemonIds = Object.keys(pokemonDatabase);
+            const randomId = wildPokemonIds[Math.floor(Math.random() * wildPokemonIds.length)];
+            battle.wildPokemon = { id: randomId, ...pokemonDatabase[randomId], currentHP: pokemonDatabase[randomId].maxHP };
+            
+            battle.playerPokemon = player.pokemon[0];
+            battle.playerPokemon.currentHP = battle.playerPokemon.maxHP; // Hồi đầy máu khi bắt đầu trận mới
 
-            heal(amount) {
-                this.hp += amount;
-                if (this.hp > this.maxHp) this.hp = this.maxHp;
-                this.log(`${this.name} hồi phục ${amount} HP!`);
-            }
+            updateBattleUI();
+            battleScene.style.display = 'flex';
+            typewriter(`Một ${battle.wildPokemon.name} hoang dã xuất hiện!`);
+        }
+        
+        function updateBattleUI() {
+            document.getElementById('enemy-pokemon').src = assets.pokemon[battle.wildPokemon.id].src;
+            document.getElementById('player-pokemon').src = assets.pokemon[battle.playerPokemon.id].src;
+            document.getElementById('enemy-name').innerText = battle.wildPokemon.name;
+            document.getElementById('player-name').innerText = battle.playerPokemon.name;
+            
+            const enemyHpPercent = (battle.wildPokemon.currentHP / battle.wildPokemon.maxHP) * 100;
+            document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, enemyHpPercent)}%`;
+            
+            const playerHpPercent = (battle.playerPokemon.currentHP / battle.playerPokemon.maxHP) * 100;
+            document.getElementById('player-hp-bar').style.width = `${Math.max(0, playerHpPercent)}%`;
+        }
+        
+        function attack(attacker, defender) {
+            const damage = Math.floor(Math.random() * 5 + 5);
+            defender.currentHP -= damage;
+            updateBattleUI();
+            return `${attacker.name} tấn công! ${defender.name} mất ${damage} HP.`;
+        }
 
-            log(message) {
-                // Log to combat log if in combat, else to main message log
-                if (inCombat) {
-                    combatLogDiv.innerHTML += `<p>${message}</p>`;
-                    combatLogDiv.scrollTop = combatLogDiv.scrollHeight; // Scroll to bottom
+        function handleFight() {
+            if (!battle.active || battle.turn !== 'player') return;
+            battle.turn = 'pending'; // Ngăn người chơi nhấn liên tục
+            
+            let message = attack(battle.playerPokemon, battle.wildPokemon);
+            typewriter(message, () => {
+                if (battle.wildPokemon.currentHP <= 0) {
+                    endBattle(true);
                 } else {
-                    messageLog.innerHTML += `<p>${message}</p>`;
-                    messageLog.scrollTop = messageLog.scrollHeight; // Scroll to bottom
-                }
-            }
-        }
-
-        class Player extends Entity {
-            constructor(x, y) {
-                super('Victini', x, y, 100, 100, 15, 10, [
-                    { name: 'Tấn công', damage: 15, accuracy: 90, type: 'Normal' },
-                    { name: 'V-Create', damage: 30, accuracy: 70, type: 'Fire', effect: 'reduce_def' }, // Powerful, might lower own defense
-                    { name: 'Searing Shot', damage: 20, accuracy: 85, type: 'Fire', effect: 'burn' }, // Chance to burn
-                    { name: 'Focus Blast', damage: 25, accuracy: 60, type: 'Fighting' } // Powerful but low accuracy
-                ], '#FFD700'); // Gold color for Victini
-                this.level = 1;
-                this.exp = 0;
-                this.expToNextLevel = 100;
-                this.inventory = []; // New inventory array
-            }
-
-            gainExp(amount) {
-                this.exp += amount;
-                this.log(`Victini nhận ${amount} EXP!`);
-                if (this.exp >= this.expToNextLevel) {
-                    this.levelUp();
-                }
-                updatePlayerStatsDisplay();
-            }
-
-            levelUp() {
-                this.level++;
-                this.exp -= this.expToNextLevel; // Carry over excess EXP
-                this.expToNextLevel = Math.floor(this.expToNextLevel * 1.5); // Increase EXP required for next level
-                this.maxHp += 10;
-                this.hp = this.maxHp; // Full heal on level up
-                this.attack += 3;
-                this.defense += 2;
-                this.log(`Victini lên cấp ${this.level}! Các chỉ số được tăng!`);
-                updatePlayerStatsDisplay();
-            }
-
-            addItemToInventory(itemId, quantity = 1) {
-                const existingItem = this.inventory.find(item => item.id === itemId);
-                if (existingItem) {
-                    existingItem.quantity += quantity;
-                    this.log(`Bạn nhận thêm ${quantity}x ${existingItem.name}.`);
-                } else {
-                    const newItem = new InventoryItem(itemId, quantity);
-                    if (newItem.id) { // Check if item was successfully created
-                        this.inventory.push(newItem);
-                        this.log(`Bạn nhận được ${quantity}x ${newItem.name}.`);
-                    }
-                }
-                updateInventoryDisplay();
-            }
-
-            removeItemFromInventory(itemId, quantity = 1) {
-                const itemIndex = this.inventory.findIndex(item => item.id === itemId);
-                if (itemIndex > -1) {
-                    this.inventory[itemIndex].quantity -= quantity;
-                    if (this.inventory[itemIndex].quantity <= 0) {
-                        this.inventory.splice(itemIndex, 1);
-                    }
-                    updateInventoryDisplay();
-                    return true;
-                }
-                return false;
-            }
-
-            useItem(item) {
-                if (item.type === 'consumable') {
-                    if (item.effect.type === 'heal') {
-                        const healAmount = item.effect.value;
-                        this.heal(healAmount);
-                        this.removeItemFromInventory(item.id);
-                        this.log(`Victini sử dụng ${item.name} và hồi phục ${healAmount} HP.`);
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            // Method to get serializable data for saving
-            getSerializableData() {
-                return {
-                    name: this.name,
-                    x: this.x,
-                    y: this.y,
-                    hp: this.hp,
-                    maxHp: this.maxHp,
-                    attack: this.attack,
-                    defense: this.defense,
-                    level: this.level,
-                    exp: this.exp,
-                    expToNextLevel: this.expToNextLevel,
-                    inventory: this.inventory.map(item => item.getSerializableData()) // Save inventory
-                };
-            }
-
-            // Method to load data into player object
-            loadFromData(data) {
-                this.name = data.name;
-                this.x = data.x;
-                this.y = data.y;
-                this.hp = data.hp;
-                this.maxHp = data.maxHp;
-                this.attack = data.attack;
-                this.defense = data.defense;
-                this.level = data.level;
-                this.exp = data.exp;
-                this.expToNextLevel = data.expToNextLevel;
-                // Reconstruct inventory items
-                this.inventory = data.inventory.map(itemData => new InventoryItem(itemData.id, itemData.quantity));
-            }
-        }
-
-        class Enemy extends Entity {
-            constructor(name, hp, attack, defense, color, expYield) {
-                super(name, 0, 0, hp, hp, attack, defense, [
-                    { name: 'Tấn công', damage: 10, accuracy: 90 }
-                ], color);
-                this.expYield = expYield; // EXP awarded when defeated
-            }
-
-            // Simple enemy AI: always attacks
-            chooseMove() {
-                return this.moves[0];
-            }
-        }
-
-        // NPC Definition
-        class NPC {
-            constructor(name, x, y, color, initialGreeting, interactionTriggered = false) {
-                this.name = name;
-                this.x = x;
-                this.y = y;
-                this.color = color;
-                this.initialGreeting = initialGreeting;
-                this.interactionTriggered = interactionTriggered; // To track first interaction for quests/items
-            }
-
-            draw() {
-                ctx.fillStyle = this.color;
-                ctx.fillRect(this.x * TILE_SIZE + TILE_SIZE / 4, this.y * TILE_SIZE + TILE_SIZE / 4, TILE_SIZE / 2, TILE_SIZE / 2);
-                ctx.strokeStyle = '#FFFFFF';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(this.x * TILE_SIZE + TILE_SIZE / 4, this.y * TILE_SIZE + TILE_SIZE / 4, TILE_SIZE / 2, TILE_SIZE / 2);
-
-                // Draw initial for NPC
-                ctx.fillStyle = '#FFFFFF';
-                ctx.font = 'bold 16px Inter';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(this.name.charAt(0), this.x * TILE_SIZE + TILE_SIZE / 2, this.y * TILE_SIZE + TILE_SIZE / 2);
-            }
-
-            // Method to get serializable data for saving
-            getSerializableData() {
-                return {
-                    name: this.name,
-                    x: this.x,
-                    y: this.y,
-                    color: this.color,
-                    initialGreeting: this.initialGreeting,
-                    interactionTriggered: this.interactionTriggered
-                };
-            }
-
-            // Method to load data into NPC object
-            loadFromData(data) {
-                this.name = data.name;
-                this.x = data.x;
-                this.y = data.y;
-                this.color = data.color;
-                this.initialGreeting = data.initialGreeting;
-                this.interactionTriggered = data.interactionTriggered;
-            }
-        }
-
-        const NPCs = [
-            new NPC('Giáo sư Elm', 7, 5, '#4A90E2', 'Chào mừng bạn đến với vùng đất này! Tôi là Giáo sư Elm, chuyên nghiên cứu về Pokemon và sự tiến hóa của chúng. Bạn có câu hỏi nào không?'),
-            new NPC('Thầy lang', 3, 8, '#70C070', 'Chào Victini! Tôi là Thầy lang của làng. Dường như bạn đang bắt đầu cuộc hành trình của mình. Hãy nhận lấy bình hồi phục này, nó sẽ giúp ích cho bạn trong các trận chiến đấy!', false) // New NPC
-        ];
-
-
-        // Map generation
-        class GameMap {
-            constructor(width, height) {
-                this.width = width;
-                this.height = height;
-                this.tiles = Array(height).fill(0).map(() => Array(width).fill(0));
-                this.generateMap();
-            }
-
-            generateMap() {
-                // Fill with grass initially
-                for (let y = 0; y < this.height; y++) {
-                    for (let x = 0; x < this.width; x++) {
-                        this.tiles[y][x] = TILE_TYPES.GRASS.id;
-                    }
-                }
-
-                // Create a winding path
-                let currentX = Math.floor(this.width / 2);
-                let currentY = Math.floor(this.height / 2);
-                for (let i = 0; i < 50; i++) {
-                    this.tiles[currentY][currentX] = TILE_TYPES.PATH.id;
-                    const direction = Math.floor(Math.random() * 4); // 0: up, 1: down, 2: left, 3: right
-                    switch (direction) {
-                        case 0: currentY = Math.max(0, currentY - 1); break;
-                        case 1: currentY = Math.min(this.height - 1, currentY + 1); break;
-                        case 2: currentX = Math.max(0, currentX - 1); break;
-                        case 3: currentX = Math.min(this.width - 1, currentX + 1); break;
-                    }
-                }
-
-                // Add some random trees
-                for (let i = 0; i < 25; i++) {
-                    const x = Math.floor(Math.random() * this.width);
-                    const y = Math.floor(Math.random() * this.height);
-                    if (this.tiles[y][x] !== TILE_TYPES.PATH.id) { // Don't place trees on paths
-                        this.tiles[y][x] = TILE_TYPES.TREE.id;
-                    }
-                }
-
-                // Add some water patches
-                for (let i = 0; i < 10; i++) {
-                    const startX = Math.floor(Math.random() * (this.width - 2));
-                    const startY = Math.floor(Math.random() * (this.height - 2));
-                    // Create a 2x2 water block
-                    for (let wy = 0; wy < 2; wy++) {
-                        for (let wx = 0; wx < 2; wx++) {
-                            if (this.tiles[startY + wy] && this.tiles[startY + wy][startX + wx] !== TILE_TYPES.PATH.id) {
-                                this.tiles[startY + wy][startX + wx] = TILE_TYPES.WATER.id;
-                            }
-                        }
-                    }
-                }
-
-                // Ensure player start is walkable (e.g., on a path or grass)
-                this.tiles[player.y][player.x] = TILE_TYPES.PATH.id;
-
-                // Ensure NPC locations are walkable and clear of other objects
-                NPCs.forEach(npc => {
-                    this.tiles[npc.y][npc.x] = TILE_TYPES.PATH.id;
-                });
-            }
-
-            getTileType(x, y) {
-                if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
-                    return Object.values(TILE_TYPES).find(type => type.id === this.tiles[y][x]);
-                }
-                return null;
-            }
-
-            isWalkable(x, y) {
-                const tile = this.getTileType(x, y);
-                return tile && tile.walkable;
-            }
-
-            draw() {
-                for (let y = 0; y < this.height; y++) {
-                    for (let x = 0; x < this.width; x++) {
-                        const tileType = this.getTileType(x,y);
-                        ctx.fillStyle = tileType.color;
-                        ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-                    }
-                }
-            }
-
-            // Method to get serializable data for saving
-            getSerializableData() {
-                return this.tiles;
-            }
-
-            // Method to load data into map object
-            loadFromData(data) {
-                this.tiles = data;
-            }
-        }
-
-        // Game initialization
-        function initializeGame() {
-            player = new Player(Math.floor(MAP_WIDTH / 2), Math.floor(MAP_HEIGHT / 2)); // Start player at center
-            map = new GameMap(MAP_WIDTH, MAP_HEIGHT);
-            gameActive = true;
-            inCombat = false;
-            inDialogue = false;
-            inItemSelection = false;
-            currentEnemy = null;
-            currentNPC = null;
-            particles = []; // Clear particles on reset
-            messageLog.innerHTML = `<p>Chào mừng bạn đến với thế giới của Victini!</p><p>Bạn là một con người được tái sinh thành Victini, hãy khám phá và phát triển sức mạnh của mình!</p>`;
-            drawGame();
-            updatePlayerStatsDisplay();
-            updateInventoryDisplay(); // Update new inventory display
-            hideCombatOverlay();
-            hideModal();
-            hideNpcDialogueModal();
-            hideItemDetailModal();
-            // Reset NPC interaction status if needed (for debug reset)
-            NPCs.forEach(npc => {
-                if (npc.name === 'Thầy lang') {
-                    npc.interactionTriggered = false;
-                }
-            });
-        }
-
-        // Main game loop for animations (particles)
-        let lastTime = 0;
-        function gameLoop(currentTime) {
-            const deltaTime = currentTime - lastTime;
-            lastTime = currentTime;
-
-            // Update particles
-            for (let i = particles.length - 1; i >= 0; i--) {
-                const p = particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.alpha -= 0.05; // Fade out
-                if (p.alpha <= 0.1) {
-                    particles.splice(i, 1); // Remove faded particles
-                }
-            }
-
-            drawGame(); // Redraw everything each frame to include particles
-            if (gameActive) {
-                requestAnimationFrame(gameLoop);
-            }
-        }
-
-        // Draw everything on canvas
-        function drawGame() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
-            map.draw(); // Draw map
-
-            // Draw particles
-            particles.forEach(p => {
-                ctx.fillStyle = `rgba(${p.r}, ${p.g}, ${p.b}, ${p.alpha})`;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            // Draw NPCs
-            NPCs.forEach(npc => npc.draw());
-
-            // Draw player (Victini)
-            ctx.fillStyle = player.color;
-            ctx.beginPath();
-            ctx.arc(player.x * TILE_SIZE + TILE_SIZE / 2, player.y * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE / 3, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#FFFFFF';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            // Draw Victini's 'V' symbol on top
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 20px Inter'; // Adjust font size as needed
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText('V', player.x * TILE_SIZE + TILE_SIZE / 2, player.y * TILE_SIZE + TILE_SIZE / 2);
-        }
-
-        // Particle effect for player movement
-        function createMovementParticles() {
-            const centerX = player.x * TILE_SIZE + TILE_SIZE / 2;
-            const centerY = player.y * TILE_SIZE + TILE_SIZE / 2;
-            for (let i = 0; i < 5; i++) { // Create 5 particles
-                particles.push({
-                    x: centerX + (Math.random() - 0.5) * 10,
-                    y: centerY + (Math.random() - 0.5) * 10,
-                    vx: (Math.random() - 0.5) * 1, // small random velocity
-                    vy: (Math.random() - 0.5) * 1,
-                    size: Math.random() * 3 + 1, // size between 1 and 4
-                    r: 255, g: 255, b: 0, // Yellowish sparkles
-                    alpha: 1
-                });
-            }
-        }
-
-
-        // Player movement
-        function movePlayer(dx, dy) {
-            if (!gameActive || inCombat || inDialogue || inItemSelection) return;
-
-            const newX = player.x + dx;
-            const newY = player.y + dy;
-
-            if (map.isWalkable(newX, newY)) {
-                player.x = newX;
-                player.y = newY;
-                createMovementParticles(); // Generate particles on movement
-                // drawGame() is now called by gameLoop
-                
-                // Chance to encounter wild Pokemon based on tile type
-                const currentTile = map.getTileType(player.x, player.y);
-                if (currentTile && Math.random() < currentTile.encounterRate) {
-                    startCombat();
-                }
-            } else {
-                player.log(`Bạn không thể đi vào ${map.getTileType(newX, newY)?.name || 'đó'}!`);
-            }
-        }
-
-        // Combat System
-        const ENEMY_DATA = [
-            { name: 'Rattata', hp: 40, attack: 7, defense: 5, color: '#A0522D', exp: 20 },
-            { name: 'Pidgey', hp: 50, attack: 8, defense: 6, color: '#87CEEB', exp: 25 },
-            { name: 'Bellsprout', hp: 60, attack: 9, defense: 7, color: '#7CFC00', exp: 30 },
-            { name: 'Zubat', hp: 55, attack: 9, defense: 6, color: '#8A2BE2', exp: 28 },
-            { name: 'Geodude', hp: 70, attack: 10, defense: 12, color: '#CD853F', exp: 35 },
-            { name: 'Eevee', hp: 65, attack: 11, defense: 8, color: '#DAA520', exp: 40 },
-            { name: 'Magikarp', hp: 30, attack: 5, defense: 3, color: '#FF4500', exp: 10 }, // Easy
-            { name: 'Onix', hp: 90, attack: 12, defense: 15, color: '#778899', exp: 50 } // Tougher
-        ];
-
-        function startCombat() {
-            gameActive = false;
-            inCombat = true;
-            combatLogDiv.innerHTML = ''; // Clear combat log
-            showCombatOverlay();
-
-            // Select a random enemy from ENEMY_DATA
-            const enemyData = ENEMY_DATA[Math.floor(Math.random() * ENEMY_DATA.length)];
-            currentEnemy = new Enemy(
-                enemyData.name,
-                enemyData.hp,
-                enemyData.attack,
-                enemyData.defense,
-                enemyData.color,
-                enemyData.exp
-            );
-            currentEnemy.log(`Một ${currentEnemy.name} hoang dã xuất hiện!`);
-            updateCombatUI();
-        }
-
-        function endCombat(outcome) {
-            inCombat = false;
-            gameActive = true;
-            hideCombatOverlay();
-            if (outcome === 'victory') {
-                player.log(`Bạn đã đánh bại ${currentEnemy.name}!`);
-                player.gainExp(currentEnemy.expYield);
-            } else if (outcome === 'flee') {
-                player.log("Bạn đã trốn thoát thành công!");
-            } else if (outcome === 'defeat') {
-                player.log("Victini đã gục ngã! Trở về khu vực an toàn...");
-                showModal("Victini đã gục ngã! Bạn trở về khu vực an toàn với nửa HP.");
-                player.hp = Math.floor(player.maxHp / 2); // Half HP on defeat
-                player.x = Math.floor(MAP_WIDTH / 2);
-                player.y = Math.floor(MAP_HEIGHT / 2); // Respawn at start area
-                player.heal(0); // Update message for heal
-            }
-            currentEnemy = null; // Clear enemy
-            drawGame(); // Redraw map (gameLoop handles this)
-            updatePlayerStatsDisplay();
-        }
-
-        function handlePlayerTurn(move) {
-            if (!inCombat || player.isFainted() || currentEnemy.isFainted()) return;
-
-            // Player's turn
-            const playerMove = move;
-            player.log(`Victini sử dụng ${playerMove.name}!`);
-
-            let damageDealt = 0;
-            if (Math.random() * 100 < playerMove.accuracy) {
-                damageDealt = Math.max(1, playerMove.damage + player.attack - currentEnemy.defense); // Ensure minimum 1 damage
-                currentEnemy.takeDamage(damageDealt);
-
-                // Handle move effects
-                if (playerMove.effect === 'reduce_def') {
-                    player.defense = Math.max(1, player.defense - 2); // Victini's defense reduced
-                    player.log(`Phòng thủ của Victini giảm!`);
-                } else if (playerMove.effect === 'burn' && Math.random() < 0.3) {
-                    currentEnemy.log(`${currentEnemy.name} bị bỏng!`);
-                    // Future: Implement burn status effect (damage over time)
-                }
-            } else {
-                player.log(`Nhưng đã trượt!`);
-            }
-
-            updateCombatUI();
-
-            if (currentEnemy.isFainted()) {
-                endCombat('victory');
-                return;
-            }
-
-            // Enemy's turn after a short delay
-            setTimeout(() => {
-                handleEnemyTurn();
-            }, 1000);
-        }
-
-        function handleEnemyTurn() {
-            if (!inCombat || player.isFainted() || currentEnemy.isFainted()) return;
-
-            const enemyMove = currentEnemy.chooseMove();
-            currentEnemy.log(`${currentEnemy.name} sử dụng ${enemyMove.name}!`);
-
-            let damageTaken = 0;
-            if (Math.random() * 100 < enemyMove.accuracy) {
-                damageTaken = Math.max(1, enemyMove.damage + currentEnemy.attack - player.defense); // Ensure minimum 1 damage
-                player.takeDamage(damageTaken);
-            } else {
-                currentEnemy.log(`Nhưng đã trượt!`);
-            }
-
-            updateCombatUI();
-
-            if (player.isFainted()) {
-                endCombat('defeat');
-            }
-        }
-
-        function attemptRun() {
-            if (Math.random() < 0.6) { // 60% chance to run
-                player.log("Bạn đã trốn thoát thành công!");
-                endCombat('flee');
-            } else {
-                player.log("Không thể trốn thoát!");
-                // Enemy's turn immediately after failed run
-                setTimeout(() => {
-                    handleEnemyTurn();
-                }, 500);
-            }
-        }
-
-        function updateCombatUI() {
-            playerHealthBar.style.width = `${(player.hp / player.maxHp) * 100}%`;
-            enemyHealthBar.style.width = `${(currentEnemy.hp / currentEnemy.maxHp) * 100}%`;
-
-            // Adjust health bar color
-            playerHealthBar.style.backgroundColor = player.hp / player.maxHp > 0.5 ? '#48bb78' : (player.hp / player.maxHp > 0.2 ? '#ecc94b' : '#e53e3e');
-            enemyHealthBar.style.backgroundColor = currentEnemy.hp / currentEnemy.maxHp > 0.5 ? '#48bb78' : (currentEnemy.hp / currentEnemy.maxHp > 0.2 ? '#ecc94b' : '#e53e3e');
-
-
-            enemyNameDisplay.textContent = currentEnemy.name;
-            playerStatsDisplay.textContent = `ATK: ${player.attack}, DEF: ${player.defense}`;
-            enemyStatsDisplay.textContent = `ATK: ${currentEnemy.attack}, DEF: ${currentEnemy.defense}`;
-        }
-
-        function showCombatOverlay() {
-            combatOverlay.classList.remove('hidden');
-        }
-
-        function hideCombatOverlay() {
-            combatOverlay.classList.add('hidden');
-        }
-
-        function showModal(message) {
-            modalMessage.textContent = message;
-            messageModal.classList.remove('hidden');
-        }
-
-        function hideModal() {
-            messageModal.classList.add('hidden');
-        }
-
-        function updatePlayerStatsDisplay() {
-            playerLevelExpDisplay.textContent = `Cấp: ${player.level} | EXP: ${player.exp}/${player.expToNextLevel}`;
-            playerCurrentStatsDisplay.textContent = `HP: ${player.hp}/${player.maxHp} | Tấn công: ${player.attack} | Phòng thủ: ${player.defense}`;
-        }
-
-        // Save/Load Game
-        function saveGame() {
-            try {
-                const serializableNPCs = NPCs.map(npc => npc.getSerializableData());
-                const saveData = {
-                    player: player.getSerializableData(),
-                    map: map.getSerializableData(),
-                    npcs: serializableNPCs // Save NPC state
-                };
-                localStorage.setItem('victiniGameSave', JSON.stringify(saveData));
-                player.log("Game đã được lưu!");
-                showModal("Game đã được lưu thành công!");
-            } catch (error) {
-                console.error("Lỗi khi lưu game:", error);
-                player.log("Lỗi: Không thể lưu game.");
-                showModal("Lỗi: Không thể lưu game.");
-            }
-        }
-
-        function loadGame() {
-            try {
-                const savedData = localStorage.getItem('victiniGameSave');
-                if (savedData) {
-                    const data = JSON.parse(savedData);
-                    player.loadFromData(data.player);
-                    map.loadFromData(data.map);
-                    // Load NPC state
-                    if (data.npcs) {
-                        NPCs.forEach((npc, index) => {
-                            if (data.npcs[index]) {
-                                npc.loadFromData(data.npcs[index]);
+                    setTimeout(() => {
+                        let enemyMessage = attack(battle.wildPokemon, battle.playerPokemon);
+                        typewriter(enemyMessage, () => {
+                            if (battle.playerPokemon.currentHP <= 0) {
+                                endBattle(false);
+                            } else {
+                                battle.turn = 'player';
                             }
                         });
-                    }
-                    player.log("Game đã được tải!");
-                    showModal("Game đã được tải thành công!");
-                    drawGame();
-                    updatePlayerStatsDisplay();
-                    updateInventoryDisplay(); // Refresh inventory
-                } else {
-                    player.log("Không tìm thấy dữ liệu lưu.");
-                    showModal("Không tìm thấy dữ liệu lưu.");
-                }
-            } catch (error) {
-                console.error("Lỗi khi tải game:", error);
-                player.log("Lỗi: Không thể tải game.");
-                showModal("Lỗi: Không thể tải game.");
-            }
-        }
-
-        // NPC Dialogue Functions
-        function showNpcDialogueModal(npc) {
-            gameActive = false; // Pause game while in dialogue
-            inDialogue = true;
-            currentNPC = npc;
-            currentDialogueHistory = [{ role: "model", parts: [{ text: npc.initialGreeting }] }]; // Start with NPC's initial greeting
-            dialogueHistoryDiv.innerHTML = `<p class="npc-message">${npc.name}: ${npc.initialGreeting}</p>`;
-            npcNameDisplay.textContent = npc.name;
-
-            // Specific interaction for Thầy lang
-            if (npc.name === 'Thầy lang' && !npc.interactionTriggered) {
-                player.addItemToInventory('potion', 1);
-                npc.interactionTriggered = true; // Mark as interacted
-                // No need for LLM call on first interaction, just give item and then allow chat
-                dialogueHistoryDiv.innerHTML += `<p class="npc-message">${npc.name}: Hãy nhận lấy bình hồi phục này, nó sẽ giúp ích cho bạn trong các trận chiến đấy!</p>`;
-                playerDialogueInput.focus();
-            } else {
-                // For other NPCs or subsequent interactions, start normal LLM chat
-                playerDialogueInput.focus(); // Focus input field
-            }
-
-            npcDialogueModal.classList.remove('hidden');
-
-        }
-
-        function hideNpcDialogueModal() {
-            inDialogue = false;
-            gameActive = true; // Resume game
-            currentNPC = null;
-            npcDialogueModal.classList.add('hidden');
-            playerDialogueInput.value = ''; // Clear input
-        }
-
-        function appendDialogue(speaker, message) {
-            const p = document.createElement('p');
-            p.textContent = `${speaker}: ${message}`;
-            p.classList.add(speaker === 'Victini' ? 'player-message' : 'npc-message');
-            dialogueHistoryDiv.appendChild(p);
-            dialogueHistoryDiv.scrollTop = dialogueHistoryDiv.scrollHeight; // Scroll to bottom
-        }
-
-        async function sendDialogue() {
-            const playerMessage = playerDialogueInput.value.trim();
-            if (!playerMessage) return;
-
-            appendDialogue('Victini', playerMessage);
-            playerDialogueInput.value = ''; // Clear input
-            sendDialogueBtn.disabled = true;
-            dialogueLoadingSpinner.style.display = 'block';
-
-            // Add player's message to chat history
-            currentDialogueHistory.push({ role: "user", parts: [{ text: playerMessage }] });
-
-            try {
-                const payload = {
-                    contents: currentDialogueHistory
-                };
-
-                const response = await fetch(GEMINI_API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-
-                if (result.candidates && result.candidates.length > 0 &&
-                    result.candidates[0].content && result.candidates[0].content.parts &&
-                    result.candidates[0].content.parts.length > 0) {
-                    const npcResponse = result.candidates[0].content.parts[0].text;
-                    appendDialogue('NPC', npcResponse);
-                    // Add NPC's response to chat history
-                    currentDialogueHistory.push({ role: "model", parts: [{ text: npcResponse }] });
-                } else {
-                    appendDialogue('NPC', '... (Tôi không hiểu rõ ý bạn. Bạn có thể nói rõ hơn không?)');
-                }
-            } catch (error) {
-                console.error("Lỗi khi gọi Gemini API:", error);
-                appendDialogue('NPC', 'Xin lỗi, tôi đang gặp chút vấn đề về kết nối. Bạn có thể thử lại sau không?');
-            } finally {
-                sendDialogueBtn.disabled = false;
-                dialogueLoadingSpinner.style.display = 'none';
-                playerDialogueInput.focus(); // Re-focus input after response
-            }
-        }
-
-        // Inventory Functions
-        function updateInventoryDisplay() {
-            inventoryGrid.innerHTML = ''; // Clear current display
-            if (player.inventory.length === 0) {
-                inventoryGrid.innerHTML = '<p class="text-center text-gray-400 col-span-4">Túi đồ trống.</p>';
-                return;
-            }
-
-            player.inventory.forEach(item => {
-                const itemDiv = document.createElement('div');
-                itemDiv.classList.add('inventory-item', 'rounded-lg', 'p-2', 'relative');
-                itemDiv.innerHTML = `
-                    <p class="font-semibold text-sm">${item.name}</p>
-                    <span class="item-quantity">x${item.quantity}</span>
-                `;
-                itemDiv.dataset.itemId = item.id;
-                itemDiv.addEventListener('click', () => showItemDetail(item));
-                inventoryGrid.appendChild(itemDiv);
-            });
-        }
-
-        function showItemDetail(item) {
-            inItemSelection = true; // Pause game while in item detail
-            itemNameDetail.textContent = item.name;
-            itemDescriptionDetail.textContent = item.description;
-            useItemBtn.dataset.itemId = item.id; // Store item ID on button
-            useItemBtn.dataset.isCombat = inCombat ? 'true' : 'false'; // Pass combat state
-            useItemBtn.disabled = player.hp === player.maxHp && item.type === 'consumable' && item.effect.type === 'heal'; // Disable if full HP and healing item
-
-            itemDetailModal.classList.remove('hidden');
-        }
-
-        function hideItemDetailModal() {
-            inItemSelection = false;
-            itemDetailModal.classList.add('hidden');
-            // If we came from combat, re-enable combat actions if needed
-            if (inCombat) {
-                // Optionally re-enable specific combat buttons if they were disabled for item selection
-            }
-        }
-
-        function handleUseItem() {
-            const itemId = useItemBtn.dataset.itemId;
-            const isCombat = useItemBtn.dataset.isCombat === 'true';
-            const item = player.inventory.find(i => i.id === itemId);
-
-            if (item && player.useItem(item)) {
-                hideItemDetailModal();
-                if (isCombat) {
-                    // After using item in combat, it's the enemy's turn
-                    setTimeout(() => {
-                        handleEnemyTurn();
                     }, 1000);
                 }
+            });
+        }
+        
+        function handleRun() {
+            if (!battle.active || battle.turn !== 'player') return;
+            battle.turn = 'pending';
+            typewriter("Bạn cố gắng bỏ chạy...", () => {
+                if (Math.random() < 0.5) {
+                    setTimeout(() => endBattle(null), 1000);
+                } else {
+                    typewriter("Bỏ chạy thất bại!", () => {
+                        setTimeout(() => {
+                            let enemyMessage = attack(battle.wildPokemon, battle.playerPokemon);
+                            typewriter(enemyMessage, () => {
+                                if (battle.playerPokemon.currentHP <= 0) {
+                                    endBattle(false);
+                                } else {
+                                    battle.turn = 'player';
+                                }
+                            });
+                        }, 1000);
+                    });
+                }
+            });
+        }
+        
+        function endBattle(playerWon) {
+            let endMessage = "";
+            if (playerWon === true) {
+                endMessage = `Bạn đã đánh bại ${battle.wildPokemon.name}!`;
+            } else if (playerWon === false) {
+                endMessage = `${battle.playerPokemon.name} đã ngất xỉu!`;
             } else {
-                player.log("Không thể sử dụng vật phẩm này lúc này.");
+                endMessage = "Bạn đã bỏ chạy thành công!";
             }
-            updatePlayerStatsDisplay(); // Update HP display
+            
+            typewriter(endMessage, () => {
+                setTimeout(() => {
+                    battle.active = false;
+                    gameState = 'world';
+                    battleScene.style.display = 'none';
+                    battleCooldown = 5;
+                }, 2000);
+            });
+        }
+        
+        function typewriter(text, callback) {
+            let i = 0;
+            messageText.innerText = '';
+            const typing = setInterval(() => {
+                if (i < text.length) {
+                    messageText.innerText += text.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(typing);
+                    if (callback) setTimeout(callback, 500);
+                }
+            }, 50);
         }
 
-
-        // Event Listeners for UI
-        document.getElementById('moveUp').addEventListener('click', () => movePlayer(0, -1));
-        document.getElementById('moveDown').addEventListener('click', () => movePlayer(0, 1));
-        document.getElementById('moveLeft').addEventListener('click', () => movePlayer(-1, 0));
-        document.getElementById('moveRight').addEventListener('click', () => movePlayer(1, 0));
-
-        document.getElementById('interact').addEventListener('click', () => {
-            if (!gameActive || inCombat || inDialogue || inItemSelection) return;
-
-            // Check if player is next to an NPC
-            let foundNPC = null;
-            for (const npc of NPCs) {
-                if (Math.abs(player.x - npc.x) <= 1 && Math.abs(player.y - npc.y) <= 1 &&
-                    (Math.abs(player.x - npc.x) + Math.abs(player.y - npc.y) === 1)) { // Only adjacent tiles
-                    foundNPC = npc;
-                    break;
-                }
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (gameState === 'world') {
+                drawMap();
+                player.draw();
             }
+            requestAnimationFrame(gameLoop);
+        }
 
-            if (foundNPC) {
-                showNpcDialogueModal(foundNPC);
-            } else {
-                player.log("Bạn nhìn xung quanh... không có gì để tương tác lúc này.");
-            }
-        });
-
-        document.getElementById('debugReset').addEventListener('click', initializeGame);
-        document.getElementById('saveGame').addEventListener('click', saveGame);
-        document.getElementById('loadGame').addEventListener('click', loadGame);
-
-        // Combat action buttons
-        document.getElementById('attackBtn').addEventListener('click', () => handlePlayerTurn(player.moves[0]));
-        document.getElementById('vcreateBtn').addEventListener('click', () => handlePlayerTurn(player.moves[1]));
-        document.getElementById('searingShotBtn').addEventListener('click', () => handlePlayerTurn(player.moves[2]));
-        document.getElementById('focusBlastBtn').addEventListener('click', () => handlePlayerTurn(player.moves[3]));
-        document.getElementById('runBtn').addEventListener('click', attemptRun);
-        document.getElementById('useItemCombatBtn').addEventListener('click', () => {
-            if (player.inventory.length > 0) {
-                showModal("Chọn một vật phẩm từ túi đồ để sử dụng.");
-                // We'll reuse the item detail modal for this, but first allow selection
-                // Temporarily show a message to guide user, then let them click on items in inventory panel
-                // This button mainly just tells the player they can use an item
-            } else {
-                showModal("Túi đồ của bạn trống!");
-            }
-        });
-
-
-        closeModalBtn.addEventListener('click', hideModal);
-
-        // NPC Dialogue event listeners
-        sendDialogueBtn.addEventListener('click', sendDialogue);
-        playerDialogueInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                sendDialogue();
-            }
-        });
-        closeDialogueModalBtn.addEventListener('click', hideNpcDialogueModal);
-
-        // Item Detail Modal event listeners
-        useItemBtn.addEventListener('click', handleUseItem);
-        closeItemDetailModalBtn.addEventListener('click', hideItemDetailModal);
-
-
-        // Keyboard controls
-        document.addEventListener('keydown', (e) => {
-            // Priority for modals/dialogue
-            if (messageModal.classList.contains('hidden') === false) {
-                if (e.key === 'Escape' || e.key === 'Enter') {
-                    hideModal();
-                }
-                return;
-            }
-            if (inDialogue) {
-                if (e.key === 'Enter' && document.activeElement === playerDialogueInput) {
-                    e.preventDefault(); // Prevent new line in input
-                    sendDialogue();
-                } else if (e.key === 'Escape') {
-                    hideNpcDialogueModal();
-                }
-                return;
-            }
-            if (inItemSelection) {
-                if (e.key === 'Escape') {
-                    hideItemDetailModal();
-                }
-                return;
-            }
-            if (inCombat) {
-                // Combat actions are handled by dedicated buttons
-                return;
-            }
-
-
-            // Game movement controls
-            switch (e.key) {
+        // --- Xử lý Input (Đã sửa) ---
+        window.addEventListener('keydown', (e) => {
+            if (gameState !== 'world') return;
+            switch(e.key) {
                 case 'ArrowUp':
-                case 'w':
-                    movePlayer(0, -1);
+                    player.move(0, -1);
                     break;
                 case 'ArrowDown':
-                case 's':
-                    movePlayer(0, 1);
+                    player.move(0, 1);
                     break;
                 case 'ArrowLeft':
-                case 'a':
-                    movePlayer(-1, 0);
+                    player.move(-1, 0);
                     break;
                 case 'ArrowRight':
-                case 'd':
-                    movePlayer(1, 0);
-                    break;
-                case 'e': // Interact key
-                    // Re-trigger interact logic for keyboard input
-                    document.getElementById('interact').click();
+                    player.move(1, 0);
                     break;
             }
         });
-
-        // Initialize the game when the window loads
-        window.onload = () => {
-            initializeGame();
-            requestAnimationFrame(gameLoop); // Start the game loop for particles
-        };
-
+        
+        fightBtn.addEventListener('click', handleFight);
+        runBtn.addEventListener('click', handleRun);
+        
     </script>
 </body>
 </html>
